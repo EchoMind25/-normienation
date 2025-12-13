@@ -1,0 +1,27 @@
+Thanks for the detailed plan and addressing my previous clarifications!
+To confirm and tweak based on your questions:
+
+Solana API Access: Use this free public RPC endpoint: https://solana-rpc.publicnode.com. It should suffice for the MVP without any API keys or paid services.
+Payment Priority: Make both Solana Pay (crypto-native) and Stripe (traditional) visible in the UI and appear fully functional (e.g., simulate wallet connects, card forms, and success messages), but keep it as mock checkout for the MVP—no real payments or fees involved.
+Meme Generator Scope: Allow both predefined templates/stickers (Normie-themed for quick fun) and custom image uploads to maximize engagement.
+Data Refresh: WebSockets for real-time updates (every 5-10 seconds) is essential from day one—stick with that over polling.
+
+On the meme generator's importance: I agree it's key for capturing the chaotic, community-driven vibe from @NormieCEO's mission (e.g., memes to fuel raids and hype). But to save tokens and costs, keep it entirely client-side (no server storage or APIs needed)—uploads can be processed locally with JS libs like fabric.js.
+No paid API keys required anywhere—rely on the public RPC and free Replit tools.
+Additionally, here's the essential data for the Normie coin to integrate into the app (pulled from the pump.fun page and @NormieCEO's recent X activity for alignment):
+
+Token Address: FrSFwE2BxWADEyUWFXDMAeomzuB4r83ZvzdG9sevpump (Solana-based memecoin)
+Current Price: $0.00019233 USD
+Market Cap: $192.3K (up 6.88% in the last 24 hours)
+24-Hour Volume: $15.5K
+ATH Market Cap: $210.9K
+Liquidity Pool: Linked to profile 4QcxVQLZj1aJTrUqnPAznCg8sBfkwRnCpZHk7ERw8LUT (11.19% noted, but focus on querying via RPC for live liquidity)
+Total Supply: ~1B (inferred from burns/locks; query RPC for exact)
+Circulating Supply: Not directly listed; use RPC to fetch via token balances
+Holders: Not specified on page; implement RPC query for holder count if possible in MVP
+Burned Tokens: 31M recently burned; total supply removed ~572M (as per @NormieCEO's manifesto and bio—emphasizing "supply stranglehold")
+Locked Tokens: 230M locked (dev updates)
+Other Stats: Bonding curve at 0% (0 SOL, $0 to graduate to Raydium); top holders include dev at 7.42%. Recent trades show active buying/selling.
+Description & Mission Alignment: Normie is a 4chan-inspired meme coin created 15 days ago, focused on everyday "normie" culture. @NormieCEO pushes relentless execution: massive burns/locks for trust, community raids/spaces for hype ("get chaotic"), and merch empire (coffee, hoodies, joggers, beanies, cologne, bags) to fund buybacks/giveaways. Recent X activity includes daily check-ins, spaces invites, and calls to "Normies unite" with TG: @TheNormieNation. Use this for app copy, like shop items and interactive polls tied to CEO updates.
+
+This data can seed the dashboard (e.g., hardcode as fallback, then overlay live RPC pulls). Let's prioritize visuals with these in the prototype.
