@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { fetchTokenMetrics, getMetrics, getPriceHistory, addPricePoint } from "./solana";
+import { fetchTokenMetrics, getMetrics, getPriceHistory, addPricePoint, getIsUsingRealData } from "./solana";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -16,12 +16,24 @@ export async function registerRoutes(
     }
   };
   
-  setInterval(updateMetrics, 5000);
+  // Update metrics every 10 seconds (reduced from 5 to be friendlier to APIs)
+  setInterval(updateMetrics, 10000);
+  
+  // Initial fetch
+  updateMetrics();
   
   app.get("/api/metrics", async (_req, res) => {
     try {
       const metrics = await fetchTokenMetrics();
-      res.json(metrics);
+      const isRealData = getIsUsingRealData();
+      
+      res.json({
+        ...metrics,
+        _meta: {
+          dataSource: isRealData ? "live" : "fallback",
+          timestamp: new Date().toISOString(),
+        }
+      });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch metrics" });
     }
@@ -44,6 +56,15 @@ export async function registerRoutes(
       decimals: 6,
       telegram: "@TheNormieNation",
       twitter: "@NormieCEO",
+    });
+  });
+  
+  // Health check endpoint
+  app.get("/api/health", (_req, res) => {
+    res.json({
+      status: "ok",
+      dataSource: getIsUsingRealData() ? "DexScreener (Live)" : "Fallback Data",
+      timestamp: new Date().toISOString(),
     });
   });
 
