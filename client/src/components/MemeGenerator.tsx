@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
+import { useToast } from "@/hooks/use-toast";
 import {
   Upload,
   Download,
@@ -12,25 +13,23 @@ import {
   Image as ImageIcon,
   Trash2,
   RotateCcw,
-  Share2,
   Sparkles,
-  Palette,
 } from "lucide-react";
 import { SiX } from "react-icons/si";
 
 const STICKERS = [
-  { id: "pepe-happy", emoji: "happy", color: "#22c55e" },
-  { id: "pepe-sad", emoji: "sad", color: "#ef4444" },
-  { id: "pepe-rocket", emoji: "rocket", color: "#f59e0b" },
-  { id: "pepe-diamond", emoji: "diamond", color: "#3b82f6" },
-  { id: "pepe-fire", emoji: "fire", color: "#ef4444" },
-  { id: "pepe-moon", emoji: "moon", color: "#eab308" },
-  { id: "pepe-money", emoji: "money", color: "#22c55e" },
-  { id: "pepe-crown", emoji: "crown", color: "#f59e0b" },
-  { id: "normie-logo", emoji: "normie", color: "#22c55e" },
-  { id: "wojak", emoji: "wojak", color: "#8b5cf6" },
-  { id: "chad", emoji: "chad", color: "#06b6d4" },
-  { id: "doge", emoji: "doge", color: "#f59e0b" },
+  { id: "pepe-happy", emoji: "😊", label: "Happy", color: "#22c55e" },
+  { id: "pepe-sad", emoji: "😢", label: "Sad", color: "#ef4444" },
+  { id: "pepe-rocket", emoji: "🚀", label: "Rocket", color: "#f59e0b" },
+  { id: "pepe-diamond", emoji: "💎", label: "Diamond", color: "#3b82f6" },
+  { id: "pepe-fire", emoji: "🔥", label: "Fire", color: "#ef4444" },
+  { id: "pepe-moon", emoji: "🌙", label: "Moon", color: "#eab308" },
+  { id: "pepe-money", emoji: "💰", label: "Money", color: "#22c55e" },
+  { id: "pepe-crown", emoji: "👑", label: "Crown", color: "#f59e0b" },
+  { id: "normie-logo", emoji: "🧑", label: "Normie", color: "#22c55e" },
+  { id: "wojak", emoji: "😭", label: "Wojak", color: "#8b5cf6" },
+  { id: "chad", emoji: "😎", label: "Chad", color: "#06b6d4" },
+  { id: "doge", emoji: "🐕", label: "Doge", color: "#f59e0b" },
 ];
 
 const TEMPLATES = [
@@ -64,6 +63,7 @@ export function MemeGenerator() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
   
   const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES[1]);
@@ -73,6 +73,7 @@ export function MemeGenerator() {
   const [textColor, setTextColor] = useState("#22c55e");
   const [fontSize, setFontSize] = useState([32]);
   const [draggedElement, setDraggedElement] = useState<{ type: "text" | "sticker"; id: string } | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
 
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -83,6 +84,7 @@ export function MemeGenerator() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Draw background
     if (backgroundImage) {
       const scale = Math.min(canvas.width / backgroundImage.width, canvas.height / backgroundImage.height);
       const x = (canvas.width - backgroundImage.width * scale) / 2;
@@ -100,6 +102,7 @@ export function MemeGenerator() {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
+    // Draw subtle grid pattern
     ctx.fillStyle = "rgba(34, 197, 94, 0.1)";
     const gridSize = 30;
     for (let x = 0; x < canvas.width; x += gridSize) {
@@ -108,35 +111,33 @@ export function MemeGenerator() {
       }
     }
 
+    // Draw stickers as emojis
     stickerElements.forEach((sticker) => {
       const stickerData = STICKERS.find((s) => s.id === sticker.stickerId);
       if (stickerData) {
         ctx.save();
         ctx.translate(sticker.x, sticker.y);
-        ctx.scale(sticker.scale, sticker.scale);
         
-        ctx.beginPath();
-        ctx.arc(0, 0, 25, 0, Math.PI * 2);
-        ctx.fillStyle = stickerData.color;
-        ctx.fill();
-        
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 20px JetBrains Mono";
+        // Draw emoji at proper size
+        const emojiSize = 40 * sticker.scale;
+        ctx.font = `${emojiSize}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(stickerData.emoji.charAt(0).toUpperCase(), 0, 0);
+        ctx.fillText(stickerData.emoji, 0, 0);
         
         ctx.restore();
       }
     });
 
+    // Draw text elements
     textElements.forEach((text) => {
       ctx.save();
-      ctx.font = `bold ${text.fontSize}px JetBrains Mono`;
+      ctx.font = `bold ${text.fontSize}px JetBrains Mono, monospace`;
       ctx.fillStyle = text.color;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       
+      // Text shadow for readability
       ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
       ctx.shadowBlur = 4;
       ctx.shadowOffsetX = 2;
@@ -146,7 +147,8 @@ export function MemeGenerator() {
       ctx.restore();
     });
 
-    ctx.font = "bold 12px JetBrains Mono";
+    // Draw watermark
+    ctx.font = "bold 12px JetBrains Mono, monospace";
     ctx.fillStyle = "rgba(34, 197, 94, 0.5)";
     ctx.textAlign = "right";
     ctx.fillText("$NORMIE", canvas.width - 10, canvas.height - 10);
@@ -159,6 +161,26 @@ export function MemeGenerator() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please select an image under 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an image file",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onload = (event) => {
         const img = new Image();
@@ -173,6 +195,17 @@ export function MemeGenerator() {
 
   const addText = () => {
     if (!newText.trim()) return;
+    
+    // Validate text length (max 100 chars)
+    if (newText.length > 100) {
+      toast({
+        title: "Text too long",
+        description: "Please keep text under 100 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -218,6 +251,7 @@ export function MemeGenerator() {
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
 
+    // Check stickers first (they're on top)
     for (const sticker of stickerElements) {
       const dist = Math.sqrt((x - sticker.x) ** 2 + (y - sticker.y) ** 2);
       if (dist < 30 * sticker.scale) {
@@ -226,10 +260,11 @@ export function MemeGenerator() {
       }
     }
 
+    // Check text elements
     for (const text of textElements) {
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        ctx.font = `bold ${text.fontSize}px JetBrains Mono`;
+        ctx.font = `bold ${text.fontSize}px JetBrains Mono, monospace`;
         const metrics = ctx.measureText(text.text);
         const width = metrics.width;
         const height = text.fontSize;
@@ -292,13 +327,52 @@ export function MemeGenerator() {
     link.download = `normie-meme-${Date.now()}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
+    
+    toast({
+      title: "Meme downloaded!",
+      description: "Your meme has been saved to your device",
+    });
   };
 
-  const shareToX = () => {
-    const text = encodeURIComponent(
-      "Check out my $NORMIE meme! Normies unite! @NormieCEO #NORMIE #Solana"
-    );
-    window.open(`https://x.com/intent/tweet?text=${text}`, "_blank");
+  const shareToX = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    setIsSharing(true);
+    
+    try {
+      // First, download the image so user has it
+      const dataUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.download = `normie-meme-${Date.now()}.png`;
+      link.href = dataUrl;
+      link.click();
+      
+      // Show toast explaining the process
+      toast({
+        title: "Image downloaded!",
+        description: "Opening X - attach the downloaded image to your tweet",
+      });
+      
+      // Wait a moment for download to start
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Open X with pre-filled text
+      const text = encodeURIComponent(
+        "Check out my $NORMIE meme! 🚀\n\nNormies unite! @NormieCEO\n\n#NORMIE #Solana #Memecoin"
+      );
+      window.open(`https://x.com/intent/tweet?text=${text}`, "_blank");
+      
+    } catch (error) {
+      console.error("Share error:", error);
+      toast({
+        title: "Share failed",
+        description: "Could not share to X. Try downloading and sharing manually.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   return (
@@ -349,10 +423,11 @@ export function MemeGenerator() {
                     variant="outline"
                     size="sm"
                     onClick={shareToX}
+                    disabled={isSharing}
                     data-testid="button-share-x"
                   >
                     <SiX className="h-4 w-4 mr-1" />
-                    Share
+                    {isSharing ? "Sharing..." : "Share to X"}
                   </Button>
                   <Button
                     size="sm"
@@ -364,6 +439,9 @@ export function MemeGenerator() {
                   </Button>
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground font-mono text-center mt-2">
+                💡 Tip: Click "Share to X" to download your meme and open Twitter - then attach the image to your tweet!
+              </p>
             </Card>
           </div>
 
@@ -391,16 +469,12 @@ export function MemeGenerator() {
                       <Button
                         key={sticker.id}
                         variant="outline"
-                        className="aspect-square p-2"
+                        className="aspect-square p-2 text-2xl"
                         onClick={() => addSticker(sticker.id)}
+                        title={sticker.label}
                         data-testid={`button-sticker-${sticker.id}`}
                       >
-                        <div
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm"
-                          style={{ backgroundColor: sticker.color }}
-                        >
-                          {sticker.emoji.charAt(0).toUpperCase()}
-                        </div>
+                        {sticker.emoji}
                       </Button>
                     ))}
                   </div>
@@ -415,15 +489,19 @@ export function MemeGenerator() {
                       <Input
                         placeholder="Enter meme text..."
                         value={newText}
-                        onChange={(e) => setNewText(e.target.value)}
+                        onChange={(e) => setNewText(e.target.value.slice(0, 100))}
                         onKeyDown={(e) => e.key === "Enter" && addText()}
                         className="font-mono"
+                        maxLength={100}
                         data-testid="input-meme-text"
                       />
                       <Button onClick={addText} data-testid="button-add-text">
                         Add
                       </Button>
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      {newText.length}/100 characters
+                    </p>
 
                     <div className="space-y-2">
                       <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
@@ -511,7 +589,7 @@ export function MemeGenerator() {
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/png,image/jpeg,image/gif,image/webp"
                       onChange={handleImageUpload}
                       className="hidden"
                       data-testid="input-image-upload"
@@ -523,7 +601,7 @@ export function MemeGenerator() {
                       data-testid="button-upload-image"
                     >
                       <Upload className="h-4 w-4 mr-2" />
-                      Upload Image
+                      Upload Image (max 5MB)
                     </Button>
 
                     <div className="space-y-2">
